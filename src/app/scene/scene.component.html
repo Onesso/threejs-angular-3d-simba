@@ -1,0 +1,115 @@
+<div class="scene-container" #sceneContainer>
+  <canvas #renderCanvas></canvas>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-title">Container House 3D</div>
+    <div class="toolbar-buttons">
+      <button
+        class="tb-btn"
+        [class.active]="mode() === 'walkthrough'"
+        (click)="toggleMode()"
+        [title]="mode() === 'orbit' ? 'Switch to Walk-through' : 'Switch to Orbit View'"
+      >
+        @if (mode() === 'orbit') {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Walk-through
+        } @else {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+            <path d="M2 12h20"/>
+          </svg>
+          Orbit View
+        }
+      </button>
+
+      <button
+        class="tb-btn"
+        [class.active]="labelsOn()"
+        (click)="toggleLabels()"
+        title="Toggle Room Labels"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 7V4h16v3"/>
+          <path d="M9 20h6"/>
+          <path d="M12 4v16"/>
+        </svg>
+        Labels
+      </button>
+
+      <button
+        class="tb-btn"
+        [class.active]="dimensionsOn()"
+        (click)="toggleDimensions()"
+        title="Toggle Dimensions"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 13V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5"/>
+          <path d="M3 17h18"/>
+          <path d="M3 15v4"/>
+          <path d="M21 15v4"/>
+        </svg>
+        Dimensions
+      </button>
+
+      <button class="tb-btn help-btn" (click)="toggleHelp()" title="Help">
+        ?
+      </button>
+    </div>
+  </div>
+
+  <!-- Help panel -->
+  @if (showHelp()) {
+    <div class="help-panel">
+      <div class="help-header">
+        <span>Controls</span>
+        <button class="close-btn" (click)="toggleHelp()">&times;</button>
+      </div>
+      <div class="help-content">
+        <p><strong>Orbit Mode:</strong></p>
+        <ul>
+          <li>Left-click + drag: Rotate</li>
+          <li>Right-click + drag: Pan</li>
+          <li>Scroll: Zoom in/out</li>
+          <li>Click on floor: Select room</li>
+        </ul>
+        <p><strong>Walk-through Mode:</strong></p>
+        <ul>
+          <li>WASD / Arrow keys: Move</li>
+          <li>Mouse: Look around</li>
+          <li>ESC: Release cursor</li>
+          <li>Click to re-lock cursor</li>
+        </ul>
+      </div>
+    </div>
+  }
+
+  <!-- Room info panel -->
+  @if (selectedRoom(); as room) {
+    <div class="room-panel">
+      <div class="room-header" [style.border-left-color]="getRoomColor(room)">
+        <span class="room-name">{{ room.name }}</span>
+        <button class="close-btn" (click)="closeRoomPanel()">&times;</button>
+      </div>
+      <div class="room-body">
+        <p class="room-desc">{{ room.description }}</p>
+        <div class="room-stat">
+          <span class="stat-label">Area</span>
+          <span class="stat-value">{{ room.area }}</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Mode indicator -->
+  @if (mode() === 'walkthrough') {
+    <div class="mode-indicator">
+      <div class="crosshair">+</div>
+      <div class="mode-hint">WASD to move &middot; Mouse to look &middot; ESC to exit</div>
+    </div>
+  }
+</div>
