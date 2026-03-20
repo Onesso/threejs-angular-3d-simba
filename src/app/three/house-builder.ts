@@ -21,29 +21,35 @@ export interface RoomDef {
   color: number;
 }
 
+// Living room = 1.5x bedroom: 2b + 1.5b = CL → b = CL/3.5
+const BED_LEN = CL / 3.5; // 3.484m
+const LR_LEN = 1.5 * BED_LEN; // 5.226m
+const LR_START = BED_LEN; // 3.484
+const LR_END = BED_LEN + LR_LEN; // 8.710
+
 export const ROOMS: RoomDef[] = [
   {
     name: 'Bedroom 1',
-    bounds: { minX: 0, maxX: 4.5, minZ: 0, maxZ: HOUSE_WIDTH },
-    labelPos: new THREE.Vector3(2.25, 1.5, HOUSE_WIDTH / 2),
+    bounds: { minX: 0, maxX: LR_START, minZ: 0, maxZ: HOUSE_WIDTH },
+    labelPos: new THREE.Vector3(BED_LEN / 2, 1.5, HOUSE_WIDTH / 2),
     description: 'Bedroom with window view',
-    area: `${(4.5 * HOUSE_WIDTH).toFixed(1)} m²`,
+    area: `${(BED_LEN * HOUSE_WIDTH).toFixed(1)} m²`,
     color: 0x2196f3,
   },
   {
     name: 'Living Room',
-    bounds: { minX: 4.5, maxX: 8, minZ: 0, maxZ: HOUSE_WIDTH },
-    labelPos: new THREE.Vector3(6.25, 1.5, HOUSE_WIDTH / 2),
+    bounds: { minX: LR_START, maxX: LR_END, minZ: 0, maxZ: HOUSE_WIDTH },
+    labelPos: new THREE.Vector3((LR_START + LR_END) / 2, 1.5, HOUSE_WIDTH / 2),
     description: 'Open-plan living area with sliding glass door to veranda',
-    area: `${(3.5 * HOUSE_WIDTH).toFixed(1)} m²`,
+    area: `${(LR_LEN * HOUSE_WIDTH).toFixed(1)} m²`,
     color: 0x4caf50,
   },
   {
     name: 'Bedroom 2',
-    bounds: { minX: 8, maxX: CL, minZ: 0, maxZ: HOUSE_WIDTH },
-    labelPos: new THREE.Vector3(10.1, 1.5, HOUSE_WIDTH / 2),
+    bounds: { minX: LR_END, maxX: CL, minZ: 0, maxZ: HOUSE_WIDTH },
+    labelPos: new THREE.Vector3((LR_END + CL) / 2, 1.5, HOUSE_WIDTH / 2),
     description: 'Master bedroom with panoramic windows',
-    area: `${((CL - 8) * HOUSE_WIDTH).toFixed(1)} m²`,
+    area: `${(BED_LEN * HOUSE_WIDTH).toFixed(1)} m²`,
     color: 0x9c27b0,
   },
 ];
@@ -222,9 +228,9 @@ function buildWall(
 export function buildContainerHouse(): THREE.Group {
   const house = new THREE.Group();
   const mat = createMaterials();
-  const blueFront = mat.containerBlue(8);
-  const blueSide = mat.containerBlue(3);
-  const blueBack = mat.containerBlue(8);
+  const brickFront = mat.brick(6, 3);
+  const brickSide = mat.brick(2, 3);
+  const brickBack = mat.brick(6, 3);
 
   // ============= FOUNDATION =============
   const foundation = new THREE.Group();
@@ -246,14 +252,16 @@ export function buildContainerHouse(): THREE.Group {
   // --- Front wall (Z=0, facing -Z) ---
   const frontOpenings: Opening[] = [
     { left: 1.0, right: 3.5, bottom: 0.3, top: 2.3 }, // Bedroom 1 window
-    { left: 4.8, right: 7.7, bottom: 0, top: 2.3 }, // Sliding glass doors (living room, veranda access)
-    { left: 8.5, right: 11.5, bottom: 0.3, top: 2.3 }, // Bedroom 2 panoramic window
+    { left: (LR_START + LR_END) / 2 - 0.7 * (LR_LEN - 0.6) / 2,
+      right: (LR_START + LR_END) / 2 + 0.7 * (LR_LEN - 0.6) / 2,
+      bottom: 0, top: 2.3 }, // Sliding glass doors (living room, 70% width, centered)
+    { left: LR_END + 0.5, right: CL - 0.5, bottom: 0.3, top: 2.3 }, // Bedroom 2 window
   ];
   const frontWall = buildWall(
     HOUSE_LENGTH,
     HOUSE_HEIGHT,
     frontOpenings,
-    blueFront,
+    brickFront,
     mat.glass,
     mat.steelFrame
   );
@@ -261,40 +269,127 @@ export function buildContainerHouse(): THREE.Group {
   frontWall.position.set(HOUSE_LENGTH / 2, 0, 0);
   house.add(frontWall);
 
+  // ---- French door for living room (steel grid pattern) ----
+  const doorFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x2c3e50, // dark navy-charcoal like the screenshot
+    metalness: 0.6,
+    roughness: 0.35,
+  });
+  const doorGroup = new THREE.Group();
+
+  const doorL = (LR_START + LR_END) / 2 - 0.7 * (LR_LEN - 0.6) / 2; // door left X (70%, centered)
+  const doorR = (LR_START + LR_END) / 2 + 0.7 * (LR_LEN - 0.6) / 2; // door right X
+  const doorB = 0;   // bottom
+  const doorT = 2.3; // top
+  const doorW = doorR - doorL; // 2.9m
+  const doorH = doorT - doorB; // 2.3m
+  const doorCX = (doorL + doorR) / 2;
+  const doorZ = -0.02; // slightly in front of the wall
+
+  const barW = 0.055; // frame bar width
+  const barD = 0.05;  // frame bar depth
+
+  // Outer frame (thick border around entire opening)
+  const outerW = 0.07;
+  // Top
+  const doorFTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + outerW, outerW, barD), doorFrameMat);
+  doorFTop.position.set(doorCX, doorT, doorZ);
+  doorFTop.castShadow = true;
+  doorGroup.add(doorFTop);
+  // Bottom
+  const doorFBot = new THREE.Mesh(new THREE.BoxGeometry(doorW + outerW, outerW, barD), doorFrameMat);
+  doorFBot.position.set(doorCX, doorB, doorZ);
+  doorFBot.castShadow = true;
+  doorGroup.add(doorFBot);
+  // Left
+  const doorFLeft = new THREE.Mesh(new THREE.BoxGeometry(outerW, doorH, barD), doorFrameMat);
+  doorFLeft.position.set(doorL, doorH / 2, doorZ);
+  doorFLeft.castShadow = true;
+  doorGroup.add(doorFLeft);
+  // Right
+  const doorFRight = new THREE.Mesh(new THREE.BoxGeometry(outerW, doorH, barD), doorFrameMat);
+  doorFRight.position.set(doorR, doorH / 2, doorZ);
+  doorFRight.castShadow = true;
+  doorGroup.add(doorFRight);
+
+  // 3 vertical dividers (creating 4 panels)
+  const panelW = doorW / 4;
+  for (let i = 1; i <= 3; i++) {
+    const x = doorL + panelW * i;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(barW, doorH, barD), doorFrameMat);
+    bar.position.set(x, doorH / 2, doorZ);
+    bar.castShadow = true;
+    doorGroup.add(bar);
+  }
+
+  // 2 horizontal dividers: kick panel line at Y=0.4, transom line at Y=1.85
+  const hBarYs = [0.4, 1.85];
+  for (const y of hBarYs) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(doorW, barW, barD), doorFrameMat);
+    bar.position.set(doorCX, y, doorZ);
+    bar.castShadow = true;
+    doorGroup.add(bar);
+  }
+
+  house.add(doorGroup);
+
   // --- Back wall (Z=HOUSE_WIDTH, facing +Z) ---
+  // Slim windows on back wall, in the living room section, toward the ends
+  const SLIM_W = 0.4;
+  const SLIM_B = 0.3;
+  const SLIM_T = 2.1;
+  const slimInset = 0.5; // distance from interior wall to window edge
   const backOpenings: Opening[] = [
-    { left: 1.5, right: 3.0, bottom: 1.0, top: 1.8 }, // Bedroom 1 back window
-    { left: 9.0, right: 10.5, bottom: 1.0, top: 1.8 }, // Bedroom 2 back window
+    { left: LR_START + slimInset, right: LR_START + slimInset + SLIM_W, bottom: SLIM_B, top: SLIM_T }, // Left slim window
+    { left: LR_END - slimInset - SLIM_W, right: LR_END - slimInset, bottom: SLIM_B, top: SLIM_T }, // Right slim window
   ];
   const backWall = buildWall(
     HOUSE_LENGTH,
     HOUSE_HEIGHT,
     backOpenings,
-    blueBack,
+    brickBack,
     mat.glass,
     mat.steelFrame
   );
   backWall.position.set(HOUSE_LENGTH / 2, 0, HOUSE_WIDTH);
   house.add(backWall);
 
+  // Extra horizontal mullions for the slim back windows (3 bars = 4 panes each)
+  const slimMullionMat = mat.steelFrame;
+  const slimMullionBarW = 0.04;
+  const slimH = SLIM_T - SLIM_B;
+  for (const opening of backOpenings) {
+    const cx = (opening.left + opening.right) / 2;
+    const w = opening.right - opening.left;
+    for (let j = 1; j <= 3; j++) {
+      const y = SLIM_B + (slimH / 4) * j;
+      const mullion = new THREE.Mesh(
+        new THREE.BoxGeometry(w, slimMullionBarW, 0.04),
+        slimMullionMat
+      );
+      mullion.position.set(cx, y, HOUSE_WIDTH + 0.01);
+      house.add(mullion);
+    }
+  }
+
   // --- Left wall (X=0, facing -X) ---
   const leftOpenings: Opening[] = [
-    { left: 0.8, right: 1.8, bottom: 1.2, top: 1.9 }, // Small window
+    { left: 0.9125, right: 3.3875, bottom: 0.55, top: 2.05 }, // Bedroom 1 side window (identical to Bedroom 2)
   ];
-  const leftWall = buildWall(HOUSE_WIDTH, HOUSE_HEIGHT, leftOpenings, blueSide, mat.glass, mat.steelFrame);
+  const leftWall = buildWall(HOUSE_WIDTH, HOUSE_HEIGHT, leftOpenings, brickSide, mat.glass, mat.steelFrame);
   leftWall.rotation.y = Math.PI / 2; // face -X
   leftWall.position.set(0, 0, HOUSE_WIDTH / 2);
   house.add(leftWall);
 
   // --- Right wall (X=HOUSE_LENGTH, facing +X) ---
   const rightOpenings: Opening[] = [
-    { left: 0.5, right: 3.8, bottom: 0.3, top: 2.3 }, // Large bedroom glass panel
+    { left: 0.9125, right: 3.3875, bottom: 0.55, top: 2.05 }, // Bedroom 2 side window (75% size)
   ];
   const rightWall = buildWall(
     HOUSE_WIDTH,
     HOUSE_HEIGHT,
     rightOpenings,
-    blueSide,
+    brickSide,
     mat.glass,
     mat.steelFrame
   );
@@ -392,49 +487,55 @@ export function buildContainerHouse(): THREE.Group {
 
   // ============= INTERIOR WALLS =============
 
-  // Divider: Bedroom 1 | Living Room at X=4.5
-  const divider1 = new THREE.Mesh(
-    new THREE.PlaneGeometry(HOUSE_WIDTH, HOUSE_HEIGHT),
-    mat.interiorWall
-  );
-  divider1.rotation.y = Math.PI / 2;
-  divider1.position.set(4.5, HOUSE_HEIGHT / 2, HOUSE_WIDTH / 2);
-  house.add(divider1);
+  // Interior door dimensions
+  const INT_DOOR_W = 0.9; // door width
+  const INT_DOOR_H = 2.1; // door height
+  const INT_DOOR_FRAME = 0.15; // small frame strip on the front side
 
-  // Door opening in divider1 (just offset a small gap representation)
-  // We'll leave a visual gap by using two panels instead
-  house.remove(divider1);
-
-  const div1Top = new THREE.Mesh(new THREE.PlaneGeometry(HOUSE_WIDTH, 0.491), mat.interiorWall);
+  // Divider: Bedroom 1 | Living Room at X=LR_START
+  // Door positioned near the front wall (Z=0 side)
+  // Top strip (above door, full width)
+  const div1Top = new THREE.Mesh(
+    new THREE.PlaneGeometry(HOUSE_WIDTH, HOUSE_HEIGHT - INT_DOOR_H), mat.interiorWall);
   div1Top.rotation.y = Math.PI / 2;
-  div1Top.position.set(4.5, HOUSE_HEIGHT - 0.245, HOUSE_WIDTH / 2);
+  div1Top.position.set(LR_START, INT_DOOR_H + (HOUSE_HEIGHT - INT_DOOR_H) / 2, HOUSE_WIDTH / 2);
   house.add(div1Top);
 
-  const div1Left = new THREE.Mesh(new THREE.PlaneGeometry(1.5, HOUSE_HEIGHT), mat.interiorWall);
-  div1Left.rotation.y = Math.PI / 2;
-  div1Left.position.set(4.5, HOUSE_HEIGHT / 2, 0.75);
-  house.add(div1Left);
+  // Small strip between front wall and door
+  const div1Front = new THREE.Mesh(
+    new THREE.PlaneGeometry(INT_DOOR_FRAME, INT_DOOR_H), mat.interiorWall);
+  div1Front.rotation.y = Math.PI / 2;
+  div1Front.position.set(LR_START, INT_DOOR_H / 2, INT_DOOR_FRAME / 2);
+  house.add(div1Front);
 
-  const div1Right = new THREE.Mesh(new THREE.PlaneGeometry(1.5, HOUSE_HEIGHT), mat.interiorWall);
-  div1Right.rotation.y = Math.PI / 2;
-  div1Right.position.set(4.5, HOUSE_HEIGHT / 2, HOUSE_WIDTH - 0.75);
-  house.add(div1Right);
+  // Large panel from door right edge to back wall
+  const div1BackW = HOUSE_WIDTH - INT_DOOR_FRAME - INT_DOOR_W;
+  const div1Back = new THREE.Mesh(
+    new THREE.PlaneGeometry(div1BackW, INT_DOOR_H), mat.interiorWall);
+  div1Back.rotation.y = Math.PI / 2;
+  div1Back.position.set(LR_START, INT_DOOR_H / 2, INT_DOOR_FRAME + INT_DOOR_W + div1BackW / 2);
+  house.add(div1Back);
 
-  // Divider: Living Room | Bedroom 2 at X=8
-  const div2Top = new THREE.Mesh(new THREE.PlaneGeometry(HOUSE_WIDTH, 0.491), mat.interiorWall);
+  // Divider: Living Room | Bedroom 2 at X=LR_END
+  // Door positioned near the front wall (Z=0 side), identical layout
+  const div2Top = new THREE.Mesh(
+    new THREE.PlaneGeometry(HOUSE_WIDTH, HOUSE_HEIGHT - INT_DOOR_H), mat.interiorWall);
   div2Top.rotation.y = Math.PI / 2;
-  div2Top.position.set(8, HOUSE_HEIGHT - 0.245, HOUSE_WIDTH / 2);
+  div2Top.position.set(LR_END, INT_DOOR_H + (HOUSE_HEIGHT - INT_DOOR_H) / 2, HOUSE_WIDTH / 2);
   house.add(div2Top);
 
-  const div2Left = new THREE.Mesh(new THREE.PlaneGeometry(1.2, HOUSE_HEIGHT), mat.interiorWall);
-  div2Left.rotation.y = Math.PI / 2;
-  div2Left.position.set(8, HOUSE_HEIGHT / 2, 0.6);
-  house.add(div2Left);
+  const div2Front = new THREE.Mesh(
+    new THREE.PlaneGeometry(INT_DOOR_FRAME, INT_DOOR_H), mat.interiorWall);
+  div2Front.rotation.y = Math.PI / 2;
+  div2Front.position.set(LR_END, INT_DOOR_H / 2, INT_DOOR_FRAME / 2);
+  house.add(div2Front);
 
-  const div2Right = new THREE.Mesh(new THREE.PlaneGeometry(1.2, HOUSE_HEIGHT), mat.interiorWall);
-  div2Right.rotation.y = Math.PI / 2;
-  div2Right.position.set(8, HOUSE_HEIGHT / 2, HOUSE_WIDTH - 0.6);
-  house.add(div2Right);
+  const div2BackW = HOUSE_WIDTH - INT_DOOR_FRAME - INT_DOOR_W;
+  const div2Back = new THREE.Mesh(
+    new THREE.PlaneGeometry(div2BackW, INT_DOOR_H), mat.interiorWall);
+  div2Back.rotation.y = Math.PI / 2;
+  div2Back.position.set(LR_END, INT_DOOR_H / 2, INT_DOOR_FRAME + INT_DOOR_W + div2BackW / 2);
+  house.add(div2Back);
 
   // ============= VERANDA DECK =============
   const veranda = new THREE.Group();
@@ -502,15 +603,6 @@ export function buildContainerHouse(): THREE.Group {
 
   house.add(landscape);
 
-  // ============= SOLAR PANEL on roof =============
-  const solarPanelY = HOUSE_HEIGHT + 0.1 + ROOF_SLOPE * 0.4 + 0.1;
-  const solarPanel = new THREE.Mesh(
-    new THREE.BoxGeometry(1.2, 0.05, 0.8),
-    new THREE.MeshStandardMaterial({ color: 0x222244, metalness: 0.8, roughness: 0.2 })
-  );
-  solarPanel.position.set(HOUSE_LENGTH - 1.5, solarPanelY, HOUSE_WIDTH * 0.6);
-  solarPanel.castShadow = true;
-  house.add(solarPanel);
 
   // ============= ROOM FLOOR MARKERS (invisible, for raycasting) =============
   for (const room of ROOMS) {

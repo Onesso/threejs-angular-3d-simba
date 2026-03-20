@@ -1,16 +1,86 @@
 import * as THREE from 'three';
 
-function createCorrugatedBumpMap(): THREE.CanvasTexture {
+function createBrickTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  // Vertical corrugation pattern typical of shipping containers
-  for (let x = 0; x < canvas.width; x++) {
-    const brightness = Math.floor(128 + 127 * Math.sin((x / canvas.width) * Math.PI * 32));
-    ctx.fillStyle = `rgb(${brightness},${brightness},${brightness})`;
-    ctx.fillRect(x, 0, 1, canvas.height);
+  const brickW = 64; // brick width in pixels
+  const brickH = 24; // brick height
+  const mortarSize = 3; // mortar joint thickness
+  const rows = Math.ceil(canvas.height / (brickH + mortarSize));
+  const cols = Math.ceil(canvas.width / (brickW + mortarSize)) + 1;
+
+  // Fill with mortar color
+  ctx.fillStyle = '#8a8580';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Brick color palette (warm reddish-brown variation like the screenshot)
+  const brickColors = [
+    '#a0522d', '#8b4513', '#b5651d', '#9e5c3a',
+    '#c4703f', '#7a4422', '#a86032', '#bf7040',
+    '#8d5533', '#b06830', '#6e3b1e', '#c97d4a',
+    '#94583a', '#ab6940', '#7f4828', '#be7545',
+  ];
+
+  for (let row = 0; row < rows; row++) {
+    const y = row * (brickH + mortarSize);
+    const offset = row % 2 === 0 ? 0 : -(brickW / 2 + mortarSize / 2); // running bond
+
+    for (let col = -1; col < cols; col++) {
+      const x = col * (brickW + mortarSize) + offset;
+
+      // Pick a random brick color
+      const baseColor = brickColors[Math.floor(Math.random() * brickColors.length)];
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(x, y, brickW, brickH);
+
+      // Add subtle variation/noise within each brick
+      for (let i = 0; i < 15; i++) {
+        const nx = x + Math.random() * brickW;
+        const ny = y + Math.random() * brickH;
+        const shade = Math.random() > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
+        ctx.fillStyle = shade;
+        ctx.fillRect(nx, ny, Math.random() * 12 + 2, Math.random() * 4 + 1);
+      }
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+function createBrickBumpMap(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+
+  const brickW = 64;
+  const brickH = 24;
+  const mortarSize = 3;
+  const rows = Math.ceil(canvas.height / (brickH + mortarSize));
+  const cols = Math.ceil(canvas.width / (brickW + mortarSize)) + 1;
+
+  // Mortar is dark (recessed)
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Bricks are light (raised)
+  for (let row = 0; row < rows; row++) {
+    const y = row * (brickH + mortarSize);
+    const offset = row % 2 === 0 ? 0 : -(brickW / 2 + mortarSize / 2);
+
+    for (let col = -1; col < cols; col++) {
+      const x = col * (brickW + mortarSize) + offset;
+      // Slight variation in height per brick
+      const b = 180 + Math.floor(Math.random() * 40);
+      ctx.fillStyle = `rgb(${b},${b},${b})`;
+      ctx.fillRect(x, y, brickW, brickH);
+    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -74,19 +144,23 @@ function createWoodFloorTexture(): THREE.CanvasTexture {
 }
 
 export function createMaterials() {
-  const corrugatedBump = createCorrugatedBumpMap();
+  const brickMap = createBrickTexture();
+  const brickBump = createBrickBumpMap();
 
   return {
-    containerBlue: (repeatX = 6) => {
-      const bumpMap = corrugatedBump.clone();
-      bumpMap.repeat.set(repeatX, 1);
-      bumpMap.needsUpdate = true;
+    brick: (repeatX = 3, repeatY = 2) => {
+      const map = brickMap.clone();
+      map.repeat.set(repeatX, repeatY);
+      map.needsUpdate = true;
+      const bump = brickBump.clone();
+      bump.repeat.set(repeatX, repeatY);
+      bump.needsUpdate = true;
       return new THREE.MeshStandardMaterial({
-        color: 0x1565c0,
-        metalness: 0.5,
-        roughness: 0.4,
-        bumpMap,
-        bumpScale: 0.03,
+        map,
+        bumpMap: bump,
+        bumpScale: 0.04,
+        metalness: 0.0,
+        roughness: 0.85,
         side: THREE.DoubleSide,
       });
     },
