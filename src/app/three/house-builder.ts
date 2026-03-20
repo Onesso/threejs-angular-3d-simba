@@ -153,7 +153,7 @@ function buildWall(
   wallMaterial: THREE.Material,
   glassMaterial: THREE.Material,
   frameMaterial: THREE.Material,
-  bumpRepeatScale = 6
+  skipGlassIndices: number[] = []
 ): THREE.Group {
   const group = new THREE.Group();
 
@@ -170,7 +170,9 @@ function buildWall(
 
   // Glass panes and frames for each opening
   const fw = 0.05; // frame width
-  for (const o of openings) {
+  for (let _oi = 0; _oi < openings.length; _oi++) {
+    const o = openings[_oi];
+    if (skipGlassIndices.includes(_oi)) continue;
     const w = o.right - o.left;
     const h = o.top - o.bottom;
     const cx = (o.left + o.right) / 2 - wallWidth / 2;
@@ -263,7 +265,8 @@ export function buildContainerHouse(): THREE.Group {
     frontOpenings,
     brickFront,
     mat.glass,
-    mat.steelFrame
+    mat.steelFrame,
+    [1] // skip glass/frames for the door opening (handled by French door leaves)
   );
   frontWall.rotation.y = Math.PI; // face outward (-Z)
   frontWall.position.set(HOUSE_LENGTH / 2, 0, 0);
@@ -289,47 +292,90 @@ export function buildContainerHouse(): THREE.Group {
   const barW = 0.055; // frame bar width
   const barD = 0.05;  // frame bar depth
 
-  // Outer frame (thick border around entire opening)
+  // Only the top lintel frame (no bottom/sides — door is open, passage is clear)
   const outerW = 0.07;
-  // Top
   const doorFTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + outerW, outerW, barD), doorFrameMat);
   doorFTop.position.set(doorCX, doorT, doorZ);
   doorFTop.castShadow = true;
   doorGroup.add(doorFTop);
-  // Bottom
-  const doorFBot = new THREE.Mesh(new THREE.BoxGeometry(doorW + outerW, outerW, barD), doorFrameMat);
-  doorFBot.position.set(doorCX, doorB, doorZ);
-  doorFBot.castShadow = true;
-  doorGroup.add(doorFBot);
-  // Left
-  const doorFLeft = new THREE.Mesh(new THREE.BoxGeometry(outerW, doorH, barD), doorFrameMat);
-  doorFLeft.position.set(doorL, doorH / 2, doorZ);
-  doorFLeft.castShadow = true;
-  doorGroup.add(doorFLeft);
-  // Right
-  const doorFRight = new THREE.Mesh(new THREE.BoxGeometry(outerW, doorH, barD), doorFrameMat);
-  doorFRight.position.set(doorR, doorH / 2, doorZ);
-  doorFRight.castShadow = true;
-  doorGroup.add(doorFRight);
 
-  // 3 vertical dividers (creating 4 panels)
+  // French doors - two leaves that swing open outward
   const panelW = doorW / 4;
-  for (let i = 1; i <= 3; i++) {
-    const x = doorL + panelW * i;
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(barW, doorH, barD), doorFrameMat);
-    bar.position.set(x, doorH / 2, doorZ);
-    bar.castShadow = true;
-    doorGroup.add(bar);
+  const kickH = 0.4;
+  const DOOR_OPEN_ANGLE = Math.PI * 0.4; // ~72 degrees open
+
+  // Helper: build one door leaf (2 panels wide)
+  function buildDoorLeaf(leafWidth: number): THREE.Group {
+    const leaf = new THREE.Group();
+    const halfPanels = 2; // each leaf has 2 vertical panels
+    const pW = leafWidth / halfPanels;
+
+    // Vertical frame bars (left edge, center, right edge)
+    for (let i = 0; i <= halfPanels; i++) {
+      const vbar = new THREE.Mesh(new THREE.BoxGeometry(barW, doorH, barD), doorFrameMat);
+      vbar.position.set(i * pW, doorH / 2, 0);
+      vbar.castShadow = true;
+      leaf.add(vbar);
+    }
+
+    // Horizontal bars: top, bottom, kick line, transom line
+    for (const y of [0, kickH, 1.85, doorH]) {
+      const hbar = new THREE.Mesh(new THREE.BoxGeometry(leafWidth, barW, barD), doorFrameMat);
+      hbar.position.set(leafWidth / 2, y, 0);
+      hbar.castShadow = true;
+      leaf.add(hbar);
+    }
+
+    // Metal kick panels (bottom section)
+    for (let i = 0; i < halfPanels; i++) {
+      const kick = new THREE.Mesh(
+        new THREE.PlaneGeometry(pW - barW, kickH - barW),
+        doorFrameMat
+      );
+      kick.position.set(pW * i + pW / 2, kickH / 2, 0.005);
+      leaf.add(kick);
+    }
+
+    // Glass panes (middle section: kickH to 1.85, and transom: 1.85 to doorH)
+    const midH = 1.85 - kickH;
+    const topH = doorH - 1.85;
+    for (let i = 0; i < halfPanels; i++) {
+      const cx = pW * i + pW / 2;
+      // Middle glass
+      const midGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(pW - barW - 0.02, midH - barW - 0.02),
+        mat.glass
+      );
+      midGlass.position.set(cx, kickH + midH / 2, 0.005);
+      leaf.add(midGlass);
+      // Transom glass
+      const topGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(pW - barW - 0.02, topH - barW - 0.02),
+        mat.glass
+      );
+      topGlass.position.set(cx, 1.85 + topH / 2, 0.005);
+      leaf.add(topGlass);
+    }
+
+    return leaf;
   }
 
-  // 2 horizontal dividers: kick panel line at Y=0.4, transom line at Y=1.85
-  const hBarYs = [0.4, 1.85];
-  for (const y of hBarYs) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(doorW, barW, barD), doorFrameMat);
-    bar.position.set(doorCX, y, doorZ);
-    bar.castShadow = true;
-    doorGroup.add(bar);
-  }
+  // Left door leaf (panels 1 & 2) - hinged on left edge, swings outward
+  const leftLeafWidth = panelW * 2;
+  const leftLeaf = buildDoorLeaf(leftLeafWidth);
+  // Position at the left edge of the door opening, pivot is at X=doorL
+  leftLeaf.position.set(doorL, 0, doorZ);
+  leftLeaf.rotation.y = DOOR_OPEN_ANGLE; // swing outward (toward -Z / veranda)
+  doorGroup.add(leftLeaf);
+
+  // Right door leaf (panels 3 & 4) - hinged on right edge, swings outward
+  const rightLeafWidth = panelW * 2;
+  const rightLeaf = buildDoorLeaf(rightLeafWidth);
+  // Position at the right edge, pivot is at X=doorR, leaf extends leftward
+  // We flip by building from doorR and rotating the opposite direction
+  rightLeaf.position.set(doorR, 0, doorZ);
+  rightLeaf.rotation.y = Math.PI - DOOR_OPEN_ANGLE; // swing outward, mirrored
+  doorGroup.add(rightLeaf);
 
   house.add(doorGroup);
 
