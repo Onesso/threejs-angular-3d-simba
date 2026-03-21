@@ -252,12 +252,18 @@ export function buildContainerHouse(): THREE.Group {
   // ============= EXTERIOR WALLS =============
 
   // --- Front wall (Z=0, facing -Z) ---
+  // Bedroom front windows: same dimensions as side windows (2.475m x 1.5m), centered in each bedroom
+  const sideWinW = 3.3875 - 0.9125; // 2.475m
+  const sideWinB = 0.55;
+  const sideWinT = 2.05;
+  const bed1CX = BED_LEN / 2; // center of bedroom 1
+  const bed2CX = LR_END + BED_LEN / 2; // center of bedroom 2
   const frontOpenings: Opening[] = [
-    { left: 1.0, right: 3.5, bottom: 0.3, top: 2.3 }, // Bedroom 1 window
+    { left: bed1CX - sideWinW / 2, right: bed1CX + sideWinW / 2, bottom: sideWinB, top: sideWinT }, // Bedroom 1 window
     { left: (LR_START + LR_END) / 2 - 0.7 * (LR_LEN - 0.6) / 2,
       right: (LR_START + LR_END) / 2 + 0.7 * (LR_LEN - 0.6) / 2,
       bottom: 0, top: 2.3 }, // Sliding glass doors (living room, 70% width, centered)
-    { left: LR_END + 0.5, right: CL - 0.5, bottom: 0.3, top: 2.3 }, // Bedroom 2 window
+    { left: bed2CX - sideWinW / 2, right: bed2CX + sideWinW / 2, bottom: sideWinB, top: sideWinT }, // Bedroom 2 window
   ];
   const frontWall = buildWall(
     HOUSE_LENGTH,
@@ -277,6 +283,7 @@ export function buildContainerHouse(): THREE.Group {
     color: 0x2c3e50, // dark navy-charcoal like the screenshot
     metalness: 0.6,
     roughness: 0.35,
+    side: THREE.DoubleSide,
   });
   const doorGroup = new THREE.Group();
 
@@ -305,7 +312,7 @@ export function buildContainerHouse(): THREE.Group {
   const DOOR_OPEN_ANGLE = Math.PI * 0.4; // ~72 degrees open
 
   // Helper: build one door leaf (2 panels wide)
-  function buildDoorLeaf(leafWidth: number): THREE.Group {
+  const buildDoorLeaf = (leafWidth: number): THREE.Group => {
     const leaf = new THREE.Group();
     const halfPanels = 2; // each leaf has 2 vertical panels
     const pW = leafWidth / halfPanels;
@@ -358,26 +365,32 @@ export function buildContainerHouse(): THREE.Group {
     }
 
     return leaf;
-  }
+  };
 
   // Left door leaf (panels 1 & 2) - hinged on left edge, swings outward
   const leftLeafWidth = panelW * 2;
   const leftLeaf = buildDoorLeaf(leftLeafWidth);
   // Position at the left edge of the door opening, pivot is at X=doorL
   leftLeaf.position.set(doorL, 0, doorZ);
-  leftLeaf.rotation.y = DOOR_OPEN_ANGLE; // swing outward (toward -Z / veranda)
+  leftLeaf.rotation.y = DOOR_OPEN_ANGLE; // start open
   doorGroup.add(leftLeaf);
 
   // Right door leaf (panels 3 & 4) - hinged on right edge, swings outward
+  // Build mirrored: geometry extends in -X from pivot so it matches left leaf when closed
   const rightLeafWidth = panelW * 2;
   const rightLeaf = buildDoorLeaf(rightLeafWidth);
-  // Position at the right edge, pivot is at X=doorR, leaf extends leftward
-  // We flip by building from doorR and rotating the opposite direction
+  rightLeaf.scale.x = -1; // mirror the geometry
   rightLeaf.position.set(doorR, 0, doorZ);
-  rightLeaf.rotation.y = Math.PI - DOOR_OPEN_ANGLE; // swing outward, mirrored
+  rightLeaf.rotation.y = -(DOOR_OPEN_ANGLE); // start open (negative because mirrored)
   doorGroup.add(rightLeaf);
 
   house.add(doorGroup);
+
+  // Store door references for animation
+  house.userData['doorLeftLeaf'] = leftLeaf;
+  house.userData['doorRightLeaf'] = rightLeaf;
+  house.userData['doorOpenAngle'] = DOOR_OPEN_ANGLE;
+  house.userData['doorIsOpen'] = true;
 
   // --- Back wall (Z=HOUSE_WIDTH, facing +Z) ---
   // Slim windows on back wall, in the living room section, toward the ends
@@ -582,6 +595,65 @@ export function buildContainerHouse(): THREE.Group {
   div2Back.rotation.y = Math.PI / 2;
   div2Back.position.set(LR_END, INT_DOOR_H / 2, INT_DOOR_FRAME + INT_DOOR_W + div2BackW / 2);
   house.add(div2Back);
+
+  // ============= BEDROOM FURNITURE =============
+  const BED_SIZE = 1.83;
+  const BED_H = 0.45; // bed height
+  const mattressH = 0.18;
+
+  const bedFrameMat = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.8 });
+  const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.9 });
+  const pillowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
+
+  // Center of each bedroom
+  const bed1CenterX = BED_LEN / 2;
+  const bed1CenterZ = HOUSE_WIDTH - BED_SIZE / 2; // pushed to back wall
+  const bed2CenterX = LR_END + BED_LEN / 2;
+  const bed2CenterZ = HOUSE_WIDTH - BED_SIZE / 2; // pushed to back wall
+
+  for (const [cx, cz] of [[bed1CenterX, bed1CenterZ], [bed2CenterX, bed2CenterZ]]) {
+    // Bed frame
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(BED_SIZE, BED_H - mattressH, BED_SIZE),
+      bedFrameMat
+    );
+    frame.position.set(cx, (BED_H - mattressH) / 2, cz);
+    frame.castShadow = true;
+    frame.receiveShadow = true;
+    house.add(frame);
+
+    // Mattress
+    const mattress = new THREE.Mesh(
+      new THREE.BoxGeometry(BED_SIZE - 0.04, mattressH, BED_SIZE - 0.04),
+      mattressMat
+    );
+    mattress.position.set(cx, BED_H - mattressH / 2, cz);
+    mattress.castShadow = true;
+    mattress.receiveShadow = true;
+    house.add(mattress);
+
+    // Headboard (against the back wall side)
+    const headboard = new THREE.Mesh(
+      new THREE.BoxGeometry(BED_SIZE, 0.5, 0.06),
+      bedFrameMat
+    );
+    headboard.position.set(cx, BED_H + 0.25, cz + BED_SIZE / 2);
+    headboard.castShadow = true;
+    house.add(headboard);
+
+    // Two pillows
+    for (const pz of [cz + BED_SIZE / 2 - 0.25]) {
+      for (const px of [cx - 0.3, cx + 0.3]) {
+        const pillow = new THREE.Mesh(
+          new THREE.BoxGeometry(0.4, 0.08, 0.25),
+          pillowMat
+        );
+        pillow.position.set(px, BED_H + 0.04, pz);
+        pillow.castShadow = true;
+        house.add(pillow);
+      }
+    }
+  }
 
   // ============= VERANDA DECK =============
   const veranda = new THREE.Group();

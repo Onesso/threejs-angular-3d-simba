@@ -48,6 +48,11 @@ export class SceneManager {
   private labelsVisible = true;
   private dimensionsVisible = false;
 
+  // Door animation
+  private doorIsOpen = true;
+  private doorTarget = 1; // 1 = open, 0 = closed
+  private doorProgress = 1; // current animation progress (0-1)
+
   private mode: ViewMode = 'orbit';
   private callbacks: SceneManagerCallbacks;
   private container: HTMLElement;
@@ -338,9 +343,36 @@ export class SceneManager {
       this.updateWalkthrough(delta);
     }
 
+    // Animate door open/close
+    this.updateDoorAnimation(delta);
+
     this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.scene, this.camera);
   };
+
+  private updateDoorAnimation(delta: number): void {
+    if (!this.house) return;
+    const diff = this.doorTarget - this.doorProgress;
+    if (Math.abs(diff) < 0.001) return;
+
+    const speed = 2.0;
+    this.doorProgress += Math.sign(diff) * speed * delta;
+    this.doorProgress = Math.max(0, Math.min(1, this.doorProgress));
+
+    try {
+      const leftLeaf = this.house.userData['doorLeftLeaf'] as THREE.Object3D | undefined;
+      const rightLeaf = this.house.userData['doorRightLeaf'] as THREE.Object3D | undefined;
+      const openAngle = (this.house.userData['doorOpenAngle'] as number) || Math.PI * 0.4;
+
+      if (leftLeaf && rightLeaf) {
+        const angle = openAngle * this.doorProgress;
+        leftLeaf.rotation.y = angle;
+        rightLeaf.rotation.y = -angle; // mirrored via scale.x = -1
+      }
+    } catch {
+      // silently handle if userData not ready
+    }
+  }
 
   // ---- Public API ----
 
@@ -374,6 +406,16 @@ export class SceneManager {
       label.visible = this.labelsVisible;
     }
     return this.labelsVisible;
+  }
+
+  toggleDoor(): boolean {
+    this.doorIsOpen = !this.doorIsOpen;
+    this.doorTarget = this.doorIsOpen ? 1 : 0;
+    return this.doorIsOpen;
+  }
+
+  getDoorOpen(): boolean {
+    return this.doorIsOpen;
   }
 
   toggleDimensions(): boolean {

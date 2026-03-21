@@ -24,6 +24,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected mode = signal<ViewMode>('orbit');
   protected labelsOn = signal(true);
   protected dimensionsOn = signal(false);
+  protected doorOpen = signal(true);
   protected selectedRoom = signal<RoomDef | null>(null);
   protected showHelp = signal(false);
 
@@ -56,6 +57,11 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected toggleDimensions(): void {
     const on = this.sceneManager.toggleDimensions();
     this.dimensionsOn.set(on);
+  }
+
+  protected toggleDoor(): void {
+    const open = this.sceneManager.toggleDoor();
+    this.doorOpen.set(open);
   }
 
   protected closeRoomPanel(): void {
