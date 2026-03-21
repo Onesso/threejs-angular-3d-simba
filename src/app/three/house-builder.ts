@@ -60,9 +60,26 @@ export interface DimensionDef {
   end: THREE.Vector3;
   label: string;
   offset: THREE.Vector3; // offset for label position from midpoint
+  color?: string; // label background color (default: red for house, blue for windows/doors)
 }
 
+// Window/door dimensions for labels
+const SIDE_WIN_W = 3.3875 - 0.9125; // 2.475m
+const SIDE_WIN_H = 2.05 - 0.55; // 1.5m
+const DOOR_W_VAL = 0.7 * (1.5 * (CL / 3.5) - 0.6); // ~3.24m
+const DOOR_H_VAL = 2.3;
+const SLIM_WIN_W_VAL = 0.4;
+const SLIM_WIN_H_VAL = 2.1 - 0.3; // 1.8m
+
+// Positions for front window/door labels
+const _bed1CX = (CL / 3.5) / 2;
+const _lrStart = CL / 3.5;
+const _lrEnd = CL / 3.5 + 1.5 * (CL / 3.5);
+const _bed2CX = _lrEnd + (CL / 3.5) / 2;
+const _doorCX = (_lrStart + _lrEnd) / 2;
+
 export const DIMENSIONS: DimensionDef[] = [
+  // House overall
   {
     start: new THREE.Vector3(0, 0, -0.5),
     end: new THREE.Vector3(CL, 0, -0.5),
@@ -80,6 +97,59 @@ export const DIMENSIONS: DimensionDef[] = [
     end: new THREE.Vector3(CL + 0.3, CH, 0),
     label: `${CH.toFixed(2)}m`,
     offset: new THREE.Vector3(0.3, 0, 0),
+  },
+  // Bedroom 1 front window
+  {
+    start: new THREE.Vector3(_bed1CX - SIDE_WIN_W / 2, 2.15, -0.3),
+    end: new THREE.Vector3(_bed1CX + SIDE_WIN_W / 2, 2.15, -0.3),
+    label: `${SIDE_WIN_W.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.2, 0),
+    color: '#1565c0',
+  },
+  {
+    start: new THREE.Vector3(_bed1CX - SIDE_WIN_W / 2 - 0.15, 0.55, -0.3),
+    end: new THREE.Vector3(_bed1CX - SIDE_WIN_W / 2 - 0.15, 2.05, -0.3),
+    label: `${SIDE_WIN_H.toFixed(2)}m`,
+    offset: new THREE.Vector3(-0.25, 0, 0),
+    color: '#1565c0',
+  },
+  // Front door
+  {
+    start: new THREE.Vector3(_doorCX - DOOR_W_VAL / 2, 2.4, -0.3),
+    end: new THREE.Vector3(_doorCX + DOOR_W_VAL / 2, 2.4, -0.3),
+    label: `${DOOR_W_VAL.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.2, 0),
+    color: '#2e7d32',
+  },
+  {
+    start: new THREE.Vector3(_doorCX + DOOR_W_VAL / 2 + 0.15, 0, -0.3),
+    end: new THREE.Vector3(_doorCX + DOOR_W_VAL / 2 + 0.15, DOOR_H_VAL, -0.3),
+    label: `${DOOR_H_VAL.toFixed(2)}m`,
+    offset: new THREE.Vector3(0.25, 0, 0),
+    color: '#2e7d32',
+  },
+  // Bedroom 2 front window
+  {
+    start: new THREE.Vector3(_bed2CX - SIDE_WIN_W / 2, 2.15, -0.3),
+    end: new THREE.Vector3(_bed2CX + SIDE_WIN_W / 2, 2.15, -0.3),
+    label: `${SIDE_WIN_W.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.2, 0),
+    color: '#1565c0',
+  },
+  // Back slim windows
+  {
+    start: new THREE.Vector3(_lrStart + 0.5, 2.2, HOUSE_WIDTH + 0.3),
+    end: new THREE.Vector3(_lrStart + 0.5 + SLIM_WIN_W_VAL, 2.2, HOUSE_WIDTH + 0.3),
+    label: `${SLIM_WIN_W_VAL.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.2, 0),
+    color: '#1565c0',
+  },
+  {
+    start: new THREE.Vector3(_lrStart + 0.3, 0.3, HOUSE_WIDTH + 0.3),
+    end: new THREE.Vector3(_lrStart + 0.3, 2.1, HOUSE_WIDTH + 0.3),
+    label: `${SLIM_WIN_H_VAL.toFixed(2)}m`,
+    offset: new THREE.Vector3(-0.2, 0, 0),
+    color: '#1565c0',
   },
 ];
 
@@ -681,7 +751,7 @@ export function buildContainerHouse(): THREE.Group {
     new THREE.BoxGeometry(TV_W, TV_H, 0.03),
     tvScreenMat
   );
-  tvScreen.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.04);
+  tvScreen.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.12);
   house.add(tvScreen);
 
   // TV bezel/frame
@@ -689,15 +759,15 @@ export function buildContainerHouse(): THREE.Group {
     new THREE.BoxGeometry(TV_W + 0.04, TV_H + 0.04, 0.02),
     tvFrameMat
   );
-  tvFrame.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.05);
+  tvFrame.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.14);
   house.add(tvFrame);
 
-  // TV mount bracket
+  // TV mount bracket (between TV and wall)
   const tvBracket = new THREE.Mesh(
-    new THREE.BoxGeometry(0.3, 0.2, 0.04),
+    new THREE.BoxGeometry(0.3, 0.2, 0.08),
     tvFrameMat
   );
-  tvBracket.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.02);
+  tvBracket.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.06);
   house.add(tvBracket);
 
   // --- Sofa facing the TV ---
@@ -817,25 +887,16 @@ export function buildContainerHouse(): THREE.Group {
   const DECK_LENGTH = HOUSE_LENGTH; // spans full front
   const DECK_DEPTH = 3.2; // extends 3.2m from front wall
   const DECK_HEIGHT = 0.0; // flush with interior floor
-  const PLANK_WIDTH = 0.15;
-  const PLANK_GAP = 0.01;
 
-  // Deck planks (individual boards for realism)
-  const plankStep = PLANK_WIDTH + PLANK_GAP;
-  const plankCount = Math.floor(DECK_DEPTH / plankStep);
-  for (let i = 0; i < plankCount; i++) {
-    const plank = new THREE.Mesh(
-      new THREE.BoxGeometry(DECK_LENGTH, 0.025, PLANK_WIDTH),
-      mat.deckWood
-    );
-    plank.position.set(
-      DECK_LENGTH / 2,
-      DECK_HEIGHT - 0.01,
-      -(i * plankStep + PLANK_WIDTH / 2 + 0.1)
-    );
-    plank.receiveShadow = true;
-    veranda.add(plank);
-  }
+  // Tiled deck surface (solid slab with tile material on top)
+  const tileSlab = new THREE.Mesh(
+    new THREE.BoxGeometry(DECK_LENGTH, 0.1, DECK_DEPTH),
+    mat.deckTile
+  );
+  tileSlab.position.set(DECK_LENGTH / 2, -0.05, -DECK_DEPTH / 2);
+  tileSlab.receiveShadow = true;
+  tileSlab.castShadow = true;
+  veranda.add(tileSlab);
 
   // Deck subframe (support beams underneath)
   const beamCount = 4;
@@ -843,7 +904,7 @@ export function buildContainerHouse(): THREE.Group {
     const x = (DECK_LENGTH / (beamCount + 1)) * (i + 1);
     const beam = new THREE.Mesh(
       new THREE.BoxGeometry(0.1, 0.12, DECK_DEPTH),
-      mat.deckWood
+      mat.concrete
     );
     beam.position.set(x, -0.08, -DECK_DEPTH / 2);
     veranda.add(beam);
@@ -862,19 +923,6 @@ export function buildContainerHouse(): THREE.Group {
   ground.receiveShadow = true;
   landscape.add(ground);
 
-  // Stepping stones (path from front of veranda)
-  const stoneGeo = new THREE.BoxGeometry(0.5, 0.05, 0.4);
-  for (let i = 0; i < 6; i++) {
-    const stone = new THREE.Mesh(stoneGeo, mat.steppingStone);
-    stone.position.set(
-      HOUSE_LENGTH / 2 + Math.sin(i * 0.4) * 0.3,
-      -0.12,
-      -4.5 - i * 1.2
-    );
-    stone.rotation.y = Math.random() * 0.3 - 0.15;
-    stone.receiveShadow = true;
-    landscape.add(stone);
-  }
 
   house.add(landscape);
 

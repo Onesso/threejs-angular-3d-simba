@@ -203,7 +203,10 @@ export class SceneManager {
       // Line
       const points = [s, e];
       const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(lineGeo, lineMat);
+      const dimLineMat = dim.color
+        ? new THREE.LineBasicMaterial({ color: dim.color })
+        : lineMat;
+      const line = new THREE.Line(lineGeo, dimLineMat);
       line.visible = this.dimensionsVisible;
       this.dimensionLines.push(line);
       this.scene.add(line);
@@ -213,8 +216,9 @@ export class SceneManager {
       const div = document.createElement('div');
       div.className = 'dim-label';
       div.textContent = dim.label;
+      const bgColor = dim.color || 'rgba(255,60,60,0.85)';
       div.style.cssText = `
-        background: rgba(255,60,60,0.85);
+        background: ${bgColor};
         color: white;
         padding: 2px 8px;
         border-radius: 3px;
