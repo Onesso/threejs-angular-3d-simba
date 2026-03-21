@@ -238,12 +238,61 @@ export function createMaterials() {
       roughness: 0.7,
     }),
 
-    deckWood: new THREE.MeshStandardMaterial({
-      color: 0x8b6043,
-      metalness: 0.0,
-      roughness: 0.75,
-      side: THREE.DoubleSide,
-    }),
+    deckTile: (() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d')!;
+
+      const tileW = 128;
+      const tileH = 512;
+      const grout = 4;
+      const cols = Math.ceil(canvas.width / (tileW + grout));
+
+      // Grout background
+      ctx.fillStyle = '#6b6158';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Wood-look tiles
+      for (let col = 0; col < cols; col++) {
+        const x = col * (tileW + grout);
+        // Base brown tone with variation per tile
+        const r = 140 + Math.floor(Math.random() * 30);
+        const g = 90 + Math.floor(Math.random() * 25);
+        const b = 55 + Math.floor(Math.random() * 20);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, 0, tileW, tileH);
+
+        // Wood grain lines
+        for (let y = 0; y < tileH; y += 3) {
+          const shade = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+          ctx.fillStyle = shade;
+          ctx.fillRect(x + 2, y, tileW - 4, 1);
+        }
+
+        // Subtle knot marks
+        for (let k = 0; k < 2; k++) {
+          const kx = x + 10 + Math.random() * (tileW - 20);
+          const ky = Math.random() * tileH;
+          ctx.fillStyle = 'rgba(0,0,0,0.08)';
+          ctx.beginPath();
+          ctx.ellipse(kx, ky, 6, 10, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      const map = new THREE.CanvasTexture(canvas);
+      map.wrapS = THREE.RepeatWrapping;
+      map.wrapT = THREE.RepeatWrapping;
+      map.repeat.set(3, 1);
+
+      return new THREE.MeshStandardMaterial({
+        map,
+        metalness: 0.05,
+        roughness: 0.7,
+        side: THREE.DoubleSide,
+      });
+    })(),
 
     deckRailing: new THREE.MeshStandardMaterial({
       color: 0x333333,

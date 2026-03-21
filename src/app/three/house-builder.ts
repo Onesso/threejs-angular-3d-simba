@@ -306,82 +306,82 @@ export function buildContainerHouse(): THREE.Group {
   doorFTop.castShadow = true;
   doorGroup.add(doorFTop);
 
-  // French doors - two leaves that swing open outward
+  // French door: 4 panels, outer 2 fixed, inner 2 swing open from the center
   const panelW = doorW / 4;
   const kickH = 0.4;
-  const DOOR_OPEN_ANGLE = Math.PI * 0.4; // ~72 degrees open
+  const DOOR_OPEN_ANGLE = Math.PI * 0.4;
+  const midH = 1.85 - kickH;
+  const topH = doorH - 1.85;
 
-  // Helper: build one door leaf (2 panels wide)
-  const buildDoorLeaf = (leafWidth: number): THREE.Group => {
-    const leaf = new THREE.Group();
-    const halfPanels = 2; // each leaf has 2 vertical panels
-    const pW = leafWidth / halfPanels;
+  // Helper: build a single door panel
+  const buildPanel = (pw: number): THREE.Group => {
+    const panel = new THREE.Group();
 
-    // Vertical frame bars (left edge, center, right edge)
-    for (let i = 0; i <= halfPanels; i++) {
+    // Vertical frame bars (left and right edges)
+    for (const x of [0, pw]) {
       const vbar = new THREE.Mesh(new THREE.BoxGeometry(barW, doorH, barD), doorFrameMat);
-      vbar.position.set(i * pW, doorH / 2, 0);
+      vbar.position.set(x, doorH / 2, 0);
       vbar.castShadow = true;
-      leaf.add(vbar);
+      panel.add(vbar);
     }
 
-    // Horizontal bars: top, bottom, kick line, transom line
+    // Horizontal bars: bottom, kick line, transom line, top
     for (const y of [0, kickH, 1.85, doorH]) {
-      const hbar = new THREE.Mesh(new THREE.BoxGeometry(leafWidth, barW, barD), doorFrameMat);
-      hbar.position.set(leafWidth / 2, y, 0);
+      const hbar = new THREE.Mesh(new THREE.BoxGeometry(pw, barW, barD), doorFrameMat);
+      hbar.position.set(pw / 2, y, 0);
       hbar.castShadow = true;
-      leaf.add(hbar);
+      panel.add(hbar);
     }
 
-    // Metal kick panels (bottom section)
-    for (let i = 0; i < halfPanels; i++) {
-      const kick = new THREE.Mesh(
-        new THREE.PlaneGeometry(pW - barW, kickH - barW),
-        doorFrameMat
-      );
-      kick.position.set(pW * i + pW / 2, kickH / 2, 0.005);
-      leaf.add(kick);
-    }
+    // Metal kick panel
+    const kick = new THREE.Mesh(
+      new THREE.PlaneGeometry(pw - barW, kickH - barW),
+      doorFrameMat
+    );
+    kick.position.set(pw / 2, kickH / 2, 0.005);
+    panel.add(kick);
 
-    // Glass panes (middle section: kickH to 1.85, and transom: 1.85 to doorH)
-    const midH = 1.85 - kickH;
-    const topH = doorH - 1.85;
-    for (let i = 0; i < halfPanels; i++) {
-      const cx = pW * i + pW / 2;
-      // Middle glass
-      const midGlass = new THREE.Mesh(
-        new THREE.PlaneGeometry(pW - barW - 0.02, midH - barW - 0.02),
-        mat.glass
-      );
-      midGlass.position.set(cx, kickH + midH / 2, 0.005);
-      leaf.add(midGlass);
-      // Transom glass
-      const topGlass = new THREE.Mesh(
-        new THREE.PlaneGeometry(pW - barW - 0.02, topH - barW - 0.02),
-        mat.glass
-      );
-      topGlass.position.set(cx, 1.85 + topH / 2, 0.005);
-      leaf.add(topGlass);
-    }
+    // Middle glass
+    const midGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(pw - barW - 0.02, midH - barW - 0.02),
+      mat.glass
+    );
+    midGlass.position.set(pw / 2, kickH + midH / 2, 0.005);
+    panel.add(midGlass);
 
-    return leaf;
+    // Transom glass
+    const topGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(pw - barW - 0.02, topH - barW - 0.02),
+      mat.glass
+    );
+    topGlass.position.set(pw / 2, 1.85 + topH / 2, 0.005);
+    panel.add(topGlass);
+
+    return panel;
   };
 
-  // Left door leaf (panels 1 & 2) - hinged on left edge, swings outward
-  const leftLeafWidth = panelW * 2;
-  const leftLeaf = buildDoorLeaf(leftLeafWidth);
-  // Position at the left edge of the door opening, pivot is at X=doorL
-  leftLeaf.position.set(doorL, 0, doorZ);
+  // Panel 1 (far left) - FIXED
+  const panel1 = buildPanel(panelW);
+  panel1.position.set(doorL, 0, doorZ);
+  doorGroup.add(panel1);
+
+  // Panel 4 (far right) - FIXED
+  const panel4 = buildPanel(panelW);
+  panel4.scale.x = -1;
+  panel4.position.set(doorR, 0, doorZ);
+  doorGroup.add(panel4);
+
+  // Panel 2 (left-center) - SWINGS, hinged where it meets panel 1
+  const leftLeaf = buildPanel(panelW);
+  leftLeaf.position.set(doorL + panelW, 0, doorZ); // hinge at left edge
   leftLeaf.rotation.y = DOOR_OPEN_ANGLE; // start open
   doorGroup.add(leftLeaf);
 
-  // Right door leaf (panels 3 & 4) - hinged on right edge, swings outward
-  // Build mirrored: geometry extends in -X from pivot so it matches left leaf when closed
-  const rightLeafWidth = panelW * 2;
-  const rightLeaf = buildDoorLeaf(rightLeafWidth);
-  rightLeaf.scale.x = -1; // mirror the geometry
-  rightLeaf.position.set(doorR, 0, doorZ);
-  rightLeaf.rotation.y = -(DOOR_OPEN_ANGLE); // start open (negative because mirrored)
+  // Panel 3 (right-center) - SWINGS, hinged where it meets panel 4
+  const rightLeaf = buildPanel(panelW);
+  rightLeaf.scale.x = -1;
+  rightLeaf.position.set(doorR - panelW, 0, doorZ); // hinge at right edge
+  rightLeaf.rotation.y = -DOOR_OPEN_ANGLE; // start open
   doorGroup.add(rightLeaf);
 
   house.add(doorGroup);
@@ -531,6 +531,72 @@ export function buildContainerHouse(): THREE.Group {
 
 
 
+  // Fill gap between front wall top and roof underside
+  // Front wall is at Z=0, height HOUSE_HEIGHT
+  // Roof underside at front: underY_front = roofY_front - ROOF_THICKNESS
+  // Need to fill from Y=HOUSE_HEIGHT to Y=underY_front across the full house width
+  const frontGapH = underY_front - HOUSE_HEIGHT;
+  if (frontGapH > 0.01) {
+    const frontFill = new THREE.Mesh(
+      new THREE.PlaneGeometry(HOUSE_LENGTH, frontGapH),
+      brickFront
+    );
+    frontFill.rotation.y = Math.PI; // face outward
+    frontFill.position.set(HOUSE_LENGTH / 2, HOUSE_HEIGHT + frontGapH / 2, 0);
+    frontFill.castShadow = true;
+    house.add(frontFill);
+
+    // Interior side of the front fill
+    const frontFillIn = new THREE.Mesh(
+      new THREE.PlaneGeometry(HOUSE_LENGTH, frontGapH),
+      mat.interiorWall
+    );
+    frontFillIn.position.set(HOUSE_LENGTH / 2, HOUSE_HEIGHT + frontGapH / 2, 0.01);
+    house.add(frontFillIn);
+  }
+
+  // Fill gap on back wall (roof is lower at back, but still might have a small gap)
+  const backGapH = underY_back - HOUSE_HEIGHT;
+  if (backGapH > 0.01) {
+    const backFill = new THREE.Mesh(
+      new THREE.PlaneGeometry(HOUSE_LENGTH, backGapH),
+      brickBack
+    );
+    backFill.position.set(HOUSE_LENGTH / 2, HOUSE_HEIGHT + backGapH / 2, HOUSE_WIDTH);
+    backFill.castShadow = true;
+    house.add(backFill);
+  }
+
+  // Fill left side gap (sloped: higher at front Z=0, lower at back Z=HOUSE_WIDTH)
+  const leftGapGeo = new THREE.BufferGeometry();
+  const lgVerts = new Float32Array([
+    0, HOUSE_HEIGHT, 0,
+    0, underY_front, 0,
+    0, underY_back, HOUSE_WIDTH,
+    0, HOUSE_HEIGHT, HOUSE_WIDTH,
+  ]);
+  leftGapGeo.setAttribute('position', new THREE.BufferAttribute(lgVerts, 3));
+  leftGapGeo.setIndex([0, 1, 2, 0, 2, 3]);
+  leftGapGeo.computeVertexNormals();
+  const leftGapFill = new THREE.Mesh(leftGapGeo, brickSide);
+  leftGapFill.castShadow = true;
+  house.add(leftGapFill);
+
+  // Fill right side gap
+  const rightGapGeo = new THREE.BufferGeometry();
+  const rgVerts = new Float32Array([
+    HOUSE_LENGTH, HOUSE_HEIGHT, 0,
+    HOUSE_LENGTH, underY_front, 0,
+    HOUSE_LENGTH, underY_back, HOUSE_WIDTH,
+    HOUSE_LENGTH, HOUSE_HEIGHT, HOUSE_WIDTH,
+  ]);
+  rightGapGeo.setAttribute('position', new THREE.BufferAttribute(rgVerts, 3));
+  rightGapGeo.setIndex([0, 2, 1, 0, 3, 2]); // flipped winding for outward normals
+  rightGapGeo.computeVertexNormals();
+  const rightGapFill = new THREE.Mesh(rightGapGeo, brickSide);
+  rightGapFill.castShadow = true;
+  house.add(rightGapFill);
+
   house.add(roofGroup);
 
   // Interior floor
@@ -596,6 +662,97 @@ export function buildContainerHouse(): THREE.Group {
   div2Back.position.set(LR_END, INT_DOOR_H / 2, INT_DOOR_FRAME + INT_DOOR_W + div2BackW / 2);
   house.add(div2Back);
 
+  // ============= LIVING ROOM FURNITURE =============
+  const lrCX = (LR_START + LR_END) / 2; // center X of living room
+
+  // --- TV mounted on back wall ---
+  const tvScreenMat = new THREE.MeshStandardMaterial({
+    color: 0x111111, metalness: 0.3, roughness: 0.2,
+  });
+  const tvFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a, metalness: 0.5, roughness: 0.3,
+  });
+
+  // TV screen (55 inch ~ 1.22m x 0.69m)
+  const TV_W = 1.22;
+  const TV_H = 0.69;
+  const TV_Y = 1.4; // center height on wall
+  const tvScreen = new THREE.Mesh(
+    new THREE.BoxGeometry(TV_W, TV_H, 0.03),
+    tvScreenMat
+  );
+  tvScreen.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.04);
+  house.add(tvScreen);
+
+  // TV bezel/frame
+  const tvFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(TV_W + 0.04, TV_H + 0.04, 0.02),
+    tvFrameMat
+  );
+  tvFrame.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.05);
+  house.add(tvFrame);
+
+  // TV mount bracket
+  const tvBracket = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.2, 0.04),
+    tvFrameMat
+  );
+  tvBracket.position.set(lrCX, TV_Y, HOUSE_WIDTH - 0.02);
+  house.add(tvBracket);
+
+  // --- Sofa facing the TV ---
+  const sofaMat = new THREE.MeshStandardMaterial({
+    color: 0x4a4a52, roughness: 0.85, metalness: 0.0,
+  });
+  const sofaCushionMat = new THREE.MeshStandardMaterial({
+    color: 0x555560, roughness: 0.9, metalness: 0.0,
+  });
+
+  const SOFA_W = 2.0;
+  const SOFA_D = 0.85;
+  const SOFA_H = 0.4;
+  const SOFA_Z = HOUSE_WIDTH / 2 + 0.3; // offset toward TV side
+
+  // Sofa base
+  const sofaBase = new THREE.Mesh(
+    new THREE.BoxGeometry(SOFA_W, SOFA_H, SOFA_D),
+    sofaMat
+  );
+  sofaBase.position.set(lrCX, SOFA_H / 2, SOFA_Z);
+  sofaBase.castShadow = true;
+  sofaBase.receiveShadow = true;
+  house.add(sofaBase);
+
+  // Sofa backrest (facing the front/door, back toward TV)
+  const sofaBack = new THREE.Mesh(
+    new THREE.BoxGeometry(SOFA_W, 0.35, 0.15),
+    sofaMat
+  );
+  sofaBack.position.set(lrCX, SOFA_H + 0.175, SOFA_Z - SOFA_D / 2 + 0.075);
+  sofaBack.castShadow = true;
+  house.add(sofaBack);
+
+  // Sofa armrests
+  for (const side of [-1, 1]) {
+    const armrest = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.25, SOFA_D),
+      sofaMat
+    );
+    armrest.position.set(lrCX + side * (SOFA_W / 2 - 0.06), SOFA_H + 0.125, SOFA_Z);
+    armrest.castShadow = true;
+    house.add(armrest);
+  }
+
+  // Seat cushions (3 cushions)
+  for (let i = -1; i <= 1; i++) {
+    const cushion = new THREE.Mesh(
+      new THREE.BoxGeometry(SOFA_W / 3 - 0.04, 0.08, SOFA_D - 0.2),
+      sofaCushionMat
+    );
+    cushion.position.set(lrCX + i * (SOFA_W / 3), SOFA_H + 0.04, SOFA_Z + 0.05);
+    house.add(cushion);
+  }
+
   // ============= BEDROOM FURNITURE =============
   const BED_SIZE = 1.83;
   const BED_H = 0.45; // bed height
@@ -607,9 +764,9 @@ export function buildContainerHouse(): THREE.Group {
 
   // Center of each bedroom
   const bed1CenterX = BED_LEN / 2;
-  const bed1CenterZ = HOUSE_WIDTH - BED_SIZE / 2; // pushed to back wall
+  const bed1CenterZ = HOUSE_WIDTH - BED_SIZE / 2 - 0.15; // near back wall with gap
   const bed2CenterX = LR_END + BED_LEN / 2;
-  const bed2CenterZ = HOUSE_WIDTH - BED_SIZE / 2; // pushed to back wall
+  const bed2CenterZ = HOUSE_WIDTH - BED_SIZE / 2 - 0.15; // near back wall with gap
 
   for (const [cx, cz] of [[bed1CenterX, bed1CenterZ], [bed2CenterX, bed2CenterZ]]) {
     // Bed frame
