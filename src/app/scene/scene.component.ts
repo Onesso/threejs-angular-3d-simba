@@ -25,6 +25,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected labelsOn = signal(true);
   protected dimensionsOn = signal(false);
   protected doorOpen = signal(true);
+  protected windowsOpen = signal(false);
   protected selectedRoom = signal<RoomDef | null>(null);
   protected showHelp = signal(false);
 
@@ -62,6 +63,11 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected toggleDoor(): void {
     const open = this.sceneManager.toggleDoor();
     this.doorOpen.set(open);
+  }
+
+  protected toggleWindows(): void {
+    const open = this.sceneManager.toggleWindows();
+    this.windowsOpen.set(open);
   }
 
   protected closeRoomPanel(): void {

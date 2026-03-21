@@ -53,6 +53,11 @@ export class SceneManager {
   private doorTarget = 1; // 1 = open, 0 = closed
   private doorProgress = 1; // current animation progress (0-1)
 
+  // Window animation
+  private windowsOpen = false;
+  private windowTarget = 0; // 0 = closed, 1 = open
+  private windowProgress = 0;
+
   private mode: ViewMode = 'orbit';
   private callbacks: SceneManagerCallbacks;
   private container: HTMLElement;
@@ -349,6 +354,8 @@ export class SceneManager {
 
     // Animate door open/close
     this.updateDoorAnimation(delta);
+    // Animate windows open/close
+    this.updateWindowAnimation(delta);
 
     this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.scene, this.camera);
@@ -372,6 +379,29 @@ export class SceneManager {
         const angle = openAngle * this.doorProgress;
         leftLeaf.rotation.y = angle;
         rightLeaf.rotation.y = -angle; // mirrored via scale.x = -1
+      }
+    } catch {
+      // silently handle if userData not ready
+    }
+  }
+
+  private updateWindowAnimation(delta: number): void {
+    if (!this.house) return;
+    const diff = this.windowTarget - this.windowProgress;
+    if (Math.abs(diff) < 0.001) return;
+
+    const speed = 2.0;
+    this.windowProgress += Math.sign(diff) * speed * delta;
+    this.windowProgress = Math.max(0, Math.min(1, this.windowProgress));
+
+    try {
+      const leaves = this.house.userData['windowLeaves'] as { leaf: THREE.Object3D; sign: number }[] | undefined;
+      const openAngle = (this.house.userData['windowOpenAngle'] as number) || Math.PI * 0.35;
+
+      if (leaves) {
+        for (const { leaf, sign } of leaves) {
+          leaf.rotation.y = sign * openAngle * this.windowProgress;
+        }
       }
     } catch {
       // silently handle if userData not ready
@@ -420,6 +450,16 @@ export class SceneManager {
 
   getDoorOpen(): boolean {
     return this.doorIsOpen;
+  }
+
+  toggleWindows(): boolean {
+    this.windowsOpen = !this.windowsOpen;
+    this.windowTarget = this.windowsOpen ? 1 : 0;
+    return this.windowsOpen;
+  }
+
+  getWindowsOpen(): boolean {
+    return this.windowsOpen;
   }
 
   toggleDimensions(): boolean {

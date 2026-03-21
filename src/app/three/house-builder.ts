@@ -8,7 +8,7 @@ const CH = 2.591; // height
 
 // House = two containers side by side
 export const HOUSE_LENGTH = CL;
-export const HOUSE_WIDTH = CW * 2; // 4.876
+export const HOUSE_WIDTH = CW * 1.5; // 3.657 (75% of original)
 export const HOUSE_HEIGHT = CH;
 
 // Room definitions for interaction
@@ -151,50 +151,50 @@ export const DIMENSIONS: DimensionDef[] = [
     offset: new THREE.Vector3(-0.2, 0, 0),
     color: '#1565c0',
   },
-  // ---- Room dimensions ----
+  // ---- Room dimensions (L-shaped: length along front, width along left side) ----
   // Bedroom 1 (blue)
   {
-    start: new THREE.Vector3(0, 0.2, HOUSE_WIDTH / 2),
-    end: new THREE.Vector3(BED_LEN, 0.2, HOUSE_WIDTH / 2),
+    start: new THREE.Vector3(0, 0.2, 0.3),
+    end: new THREE.Vector3(BED_LEN, 0.2, 0.3),
     label: `Bedroom 1: ${BED_LEN.toFixed(2)}m`,
     offset: new THREE.Vector3(0, 0.4, 0),
     color: '#2196f3',
   },
   {
-    start: new THREE.Vector3(BED_LEN / 2, 0.2, 0),
-    end: new THREE.Vector3(BED_LEN / 2, 0.2, HOUSE_WIDTH),
+    start: new THREE.Vector3(0.3, 0.2, 0),
+    end: new THREE.Vector3(0.3, 0.2, HOUSE_WIDTH),
     label: `${HOUSE_WIDTH.toFixed(2)}m`,
-    offset: new THREE.Vector3(0.3, 0.4, 0),
+    offset: new THREE.Vector3(-0.3, 0.4, 0),
     color: '#2196f3',
   },
   // Living Room (green)
   {
-    start: new THREE.Vector3(LR_START, 0.2, HOUSE_WIDTH / 2),
-    end: new THREE.Vector3(LR_END, 0.2, HOUSE_WIDTH / 2),
+    start: new THREE.Vector3(LR_START, 0.2, 0.3),
+    end: new THREE.Vector3(LR_END, 0.2, 0.3),
     label: `Living Room: ${LR_LEN.toFixed(2)}m`,
     offset: new THREE.Vector3(0, 0.4, 0),
     color: '#4caf50',
   },
   {
-    start: new THREE.Vector3((LR_START + LR_END) / 2, 0.2, 0),
-    end: new THREE.Vector3((LR_START + LR_END) / 2, 0.2, HOUSE_WIDTH),
+    start: new THREE.Vector3(LR_START + 0.3, 0.2, 0),
+    end: new THREE.Vector3(LR_START + 0.3, 0.2, HOUSE_WIDTH),
     label: `${HOUSE_WIDTH.toFixed(2)}m`,
-    offset: new THREE.Vector3(0.3, 0.4, 0),
+    offset: new THREE.Vector3(-0.3, 0.4, 0),
     color: '#4caf50',
   },
   // Bedroom 2 (purple)
   {
-    start: new THREE.Vector3(LR_END, 0.2, HOUSE_WIDTH / 2),
-    end: new THREE.Vector3(CL, 0.2, HOUSE_WIDTH / 2),
+    start: new THREE.Vector3(LR_END, 0.2, 0.3),
+    end: new THREE.Vector3(CL, 0.2, 0.3),
     label: `Bedroom 2: ${BED_LEN.toFixed(2)}m`,
     offset: new THREE.Vector3(0, 0.4, 0),
     color: '#9c27b0',
   },
   {
-    start: new THREE.Vector3((LR_END + CL) / 2, 0.2, 0),
-    end: new THREE.Vector3((LR_END + CL) / 2, 0.2, HOUSE_WIDTH),
+    start: new THREE.Vector3(LR_END + 0.3, 0.2, 0),
+    end: new THREE.Vector3(LR_END + 0.3, 0.2, HOUSE_WIDTH),
     label: `${HOUSE_WIDTH.toFixed(2)}m`,
-    offset: new THREE.Vector3(0.3, 0.4, 0),
+    offset: new THREE.Vector3(-0.3, 0.4, 0),
     color: '#9c27b0',
   },
 ];
@@ -341,6 +341,54 @@ function buildWall(
   return group;
 }
 
+// ---- Window leaf builder (casement panel) ----
+
+function buildWindowLeaf(
+  w: number, h: number,
+  glassMat: THREE.Material, frameMat: THREE.Material
+): THREE.Group {
+  const leaf = new THREE.Group();
+  const fw = 0.05;
+
+  // Glass pane
+  const glass = new THREE.Mesh(
+    new THREE.PlaneGeometry(w - fw, h - fw),
+    glassMat
+  );
+  glass.position.set(w / 2, h / 2, 0.005);
+  leaf.add(glass);
+
+  // Frame bars
+  const topBar = new THREE.Mesh(new THREE.BoxGeometry(w, fw, fw), frameMat);
+  topBar.position.set(w / 2, h - fw / 2, 0);
+  topBar.castShadow = true;
+  leaf.add(topBar);
+
+  const botBar = new THREE.Mesh(new THREE.BoxGeometry(w, fw, fw), frameMat);
+  botBar.position.set(w / 2, fw / 2, 0);
+  botBar.castShadow = true;
+  leaf.add(botBar);
+
+  const leftBar = new THREE.Mesh(new THREE.BoxGeometry(fw, h, fw), frameMat);
+  leftBar.position.set(fw / 2, h / 2, 0);
+  leftBar.castShadow = true;
+  leaf.add(leftBar);
+
+  const rightBar = new THREE.Mesh(new THREE.BoxGeometry(fw, h, fw), frameMat);
+  rightBar.position.set(w - fw / 2, h / 2, 0);
+  rightBar.castShadow = true;
+  leaf.add(rightBar);
+
+  // Horizontal mullion
+  if (h > 1.0) {
+    const mullion = new THREE.Mesh(new THREE.BoxGeometry(w - fw, fw * 0.6, fw), frameMat);
+    mullion.position.set(w / 2, h / 2, 0);
+    leaf.add(mullion);
+  }
+
+  return leaf;
+}
+
 // ---- Main builder ----
 
 export function buildContainerHouse(): THREE.Group {
@@ -388,7 +436,7 @@ export function buildContainerHouse(): THREE.Group {
     brickFront,
     mat.glass,
     mat.steelFrame,
-    [1] // skip glass/frames for the door opening (handled by French door leaves)
+    [0, 1, 2] // skip glass for bedroom windows (0, 2) and door (1) — built as openable elements
   );
   frontWall.rotation.y = Math.PI; // face outward (-Z)
   frontWall.position.set(HOUSE_LENGTH / 2, 0, 0);
@@ -549,16 +597,16 @@ export function buildContainerHouse(): THREE.Group {
 
   // --- Left wall (X=0, facing -X) ---
   const leftOpenings: Opening[] = [
-    { left: 0.9125, right: 3.3875, bottom: 0.55, top: 2.05 }, // Bedroom 1 side window (identical to Bedroom 2)
+    { left: 0.6844, right: 2.5406, bottom: 0.55, top: 2.05 }, // Bedroom 1 side window (scaled to 75% width)
   ];
-  const leftWall = buildWall(HOUSE_WIDTH, HOUSE_HEIGHT, leftOpenings, brickSide, mat.glass, mat.steelFrame);
+  const leftWall = buildWall(HOUSE_WIDTH, HOUSE_HEIGHT, leftOpenings, brickSide, mat.glass, mat.steelFrame, [0]);
   leftWall.rotation.y = Math.PI / 2; // face -X
   leftWall.position.set(0, 0, HOUSE_WIDTH / 2);
   house.add(leftWall);
 
   // --- Right wall (X=HOUSE_LENGTH, facing +X) ---
   const rightOpenings: Opening[] = [
-    { left: 0.9125, right: 3.3875, bottom: 0.55, top: 2.05 }, // Bedroom 2 side window (75% size)
+    { left: 0.6844, right: 2.5406, bottom: 0.55, top: 2.05 }, // Bedroom 2 side window (scaled to 75% width)
   ];
   const rightWall = buildWall(
     HOUSE_WIDTH,
@@ -566,11 +614,115 @@ export function buildContainerHouse(): THREE.Group {
     rightOpenings,
     brickSide,
     mat.glass,
-    mat.steelFrame
+    mat.steelFrame,
+    [0]
   );
   rightWall.rotation.y = -Math.PI / 2; // face +X
   rightWall.position.set(HOUSE_LENGTH, 0, HOUSE_WIDTH / 2);
   house.add(rightWall);
+
+  // ============= OPENABLE BEDROOM WINDOWS =============
+  // Casement windows: two leaves per window, hinged at edges, swing outward
+  const WIN_OPEN_ANGLE = Math.PI * 0.35;
+  const winH = sideWinT - sideWinB; // 1.5m
+  const frontHalfW = sideWinW / 2; // half of front window width
+
+  // Side wall window edges in wall-local coords
+  const swL = 0.6844;
+  const swR = 2.5406;
+  const sideHalfW = (swR - swL) / 2;
+
+  const windowLeaves: { leaf: THREE.Group; sign: number }[] = [];
+
+  // --- Front wall Bedroom 1 window (at bed1CX, Z=0) ---
+  // Front wall is rotated PI so wall-space bed1CX maps to house-local bed1CX
+  // (both bedrooms have identical windows so the swap doesn't matter visually)
+  {
+    const pivotL = new THREE.Group();
+    pivotL.position.set(bed1CX - sideWinW / 2, sideWinB, 0);
+    house.add(pivotL);
+    const leafL = buildWindowLeaf(frontHalfW, winH, mat.glass, mat.steelFrame);
+    pivotL.add(leafL);
+    windowLeaves.push({ leaf: leafL, sign: 1 });
+
+    const pivotR = new THREE.Group();
+    pivotR.position.set(bed1CX + sideWinW / 2, sideWinB, 0);
+    house.add(pivotR);
+    const leafR = buildWindowLeaf(frontHalfW, winH, mat.glass, mat.steelFrame);
+    leafR.scale.x = -1;
+    pivotR.add(leafR);
+    windowLeaves.push({ leaf: leafR, sign: -1 });
+  }
+
+  // --- Front wall Bedroom 2 window (at bed2CX, Z=0) ---
+  {
+    const pivotL = new THREE.Group();
+    pivotL.position.set(bed2CX - sideWinW / 2, sideWinB, 0);
+    house.add(pivotL);
+    const leafL = buildWindowLeaf(frontHalfW, winH, mat.glass, mat.steelFrame);
+    pivotL.add(leafL);
+    windowLeaves.push({ leaf: leafL, sign: 1 });
+
+    const pivotR = new THREE.Group();
+    pivotR.position.set(bed2CX + sideWinW / 2, sideWinB, 0);
+    house.add(pivotR);
+    const leafR = buildWindowLeaf(frontHalfW, winH, mat.glass, mat.steelFrame);
+    leafR.scale.x = -1;
+    pivotR.add(leafR);
+    windowLeaves.push({ leaf: leafR, sign: -1 });
+  }
+
+  // --- Left wall window (X=0, outward = -X) ---
+  {
+    // World Z edges (left wall rotation maps wall-local X to world Z reversed)
+    const lwUpperZ = HOUSE_WIDTH - swL; // upper Z hinge
+    const lwLowerZ = HOUSE_WIDTH - swR; // lower Z hinge
+
+    // Upper leaf (hinged at high-Z edge, extends toward center in -Z)
+    const pivotU = new THREE.Group();
+    pivotU.position.set(0, sideWinB, lwUpperZ);
+    pivotU.rotation.y = Math.PI / 2;
+    house.add(pivotU);
+    const leafU = buildWindowLeaf(sideHalfW, winH, mat.glass, mat.steelFrame);
+    pivotU.add(leafU);
+    windowLeaves.push({ leaf: leafU, sign: 1 });
+
+    // Lower leaf (hinged at low-Z edge, extends toward center in +Z)
+    const pivotL = new THREE.Group();
+    pivotL.position.set(0, sideWinB, lwLowerZ);
+    pivotL.rotation.y = -Math.PI / 2;
+    house.add(pivotL);
+    const leafL = buildWindowLeaf(sideHalfW, winH, mat.glass, mat.steelFrame);
+    pivotL.add(leafL);
+    windowLeaves.push({ leaf: leafL, sign: -1 });
+  }
+
+  // --- Right wall window (X=HOUSE_LENGTH, outward = +X) ---
+  {
+    const rwUpperZ = swR; // upper Z hinge
+    const rwLowerZ = swL; // lower Z hinge
+
+    // Upper leaf (hinged at high-Z edge, extends toward center in -Z)
+    const pivotU = new THREE.Group();
+    pivotU.position.set(HOUSE_LENGTH, sideWinB, rwUpperZ);
+    pivotU.rotation.y = Math.PI / 2;
+    house.add(pivotU);
+    const leafU = buildWindowLeaf(sideHalfW, winH, mat.glass, mat.steelFrame);
+    pivotU.add(leafU);
+    windowLeaves.push({ leaf: leafU, sign: -1 });
+
+    // Lower leaf (hinged at low-Z edge, extends toward center in +Z)
+    const pivotL = new THREE.Group();
+    pivotL.position.set(HOUSE_LENGTH, sideWinB, rwLowerZ);
+    pivotL.rotation.y = -Math.PI / 2;
+    house.add(pivotL);
+    const leafL = buildWindowLeaf(sideHalfW, winH, mat.glass, mat.steelFrame);
+    pivotL.add(leafL);
+    windowLeaves.push({ leaf: leafL, sign: 1 });
+  }
+
+  house.userData['windowLeaves'] = windowLeaves;
+  house.userData['windowOpenAngle'] = WIN_OPEN_ANGLE;
 
   // ============= ROOF & FLOOR =============
 
