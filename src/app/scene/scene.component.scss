@@ -92,6 +92,61 @@
   border-radius: 50%;
 }
 
+// ---- Mobile responsive toolbar ----
+
+@media (max-width: 600px) {
+  .toolbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+
+  .toolbar-title {
+    font-size: 13px;
+  }
+
+  .toolbar-buttons {
+    gap: 4px;
+  }
+
+  .tb-btn {
+    padding: 6px 8px;
+    gap: 0;
+
+    .btn-text {
+      display: none;
+    }
+  }
+
+  .help-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .help-panel {
+    top: 55px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+
+  .room-panel {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+  }
+
+  .mode-hint {
+    font-size: 11px;
+    padding: 5px 12px;
+    bottom: 12px;
+  }
+}
+
 // ---- Help panel ----
 
 .help-panel {

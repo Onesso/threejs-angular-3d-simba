@@ -151,6 +151,52 @@ export const DIMENSIONS: DimensionDef[] = [
     offset: new THREE.Vector3(-0.2, 0, 0),
     color: '#1565c0',
   },
+  // ---- Room dimensions ----
+  // Bedroom 1 (blue)
+  {
+    start: new THREE.Vector3(0, 0.2, HOUSE_WIDTH / 2),
+    end: new THREE.Vector3(BED_LEN, 0.2, HOUSE_WIDTH / 2),
+    label: `Bedroom 1: ${BED_LEN.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.4, 0),
+    color: '#2196f3',
+  },
+  {
+    start: new THREE.Vector3(BED_LEN / 2, 0.2, 0),
+    end: new THREE.Vector3(BED_LEN / 2, 0.2, HOUSE_WIDTH),
+    label: `${HOUSE_WIDTH.toFixed(2)}m`,
+    offset: new THREE.Vector3(0.3, 0.4, 0),
+    color: '#2196f3',
+  },
+  // Living Room (green)
+  {
+    start: new THREE.Vector3(LR_START, 0.2, HOUSE_WIDTH / 2),
+    end: new THREE.Vector3(LR_END, 0.2, HOUSE_WIDTH / 2),
+    label: `Living Room: ${LR_LEN.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.4, 0),
+    color: '#4caf50',
+  },
+  {
+    start: new THREE.Vector3((LR_START + LR_END) / 2, 0.2, 0),
+    end: new THREE.Vector3((LR_START + LR_END) / 2, 0.2, HOUSE_WIDTH),
+    label: `${HOUSE_WIDTH.toFixed(2)}m`,
+    offset: new THREE.Vector3(0.3, 0.4, 0),
+    color: '#4caf50',
+  },
+  // Bedroom 2 (purple)
+  {
+    start: new THREE.Vector3(LR_END, 0.2, HOUSE_WIDTH / 2),
+    end: new THREE.Vector3(CL, 0.2, HOUSE_WIDTH / 2),
+    label: `Bedroom 2: ${BED_LEN.toFixed(2)}m`,
+    offset: new THREE.Vector3(0, 0.4, 0),
+    color: '#9c27b0',
+  },
+  {
+    start: new THREE.Vector3((LR_END + CL) / 2, 0.2, 0),
+    end: new THREE.Vector3((LR_END + CL) / 2, 0.2, HOUSE_WIDTH),
+    label: `${HOUSE_WIDTH.toFixed(2)}m`,
+    offset: new THREE.Vector3(0.3, 0.4, 0),
+    color: '#9c27b0',
+  },
 ];
 
 // ---- Wall builder helpers ----

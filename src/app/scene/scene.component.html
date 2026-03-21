@@ -16,14 +16,14 @@
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
           </svg>
-          Walk-through
+          <span class="btn-text">Walk-through</span>
         } @else {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
             <path d="M2 12h20"/>
           </svg>
-          Orbit View
+          <span class="btn-text">Orbit View</span>
         }
       </button>
 
@@ -38,7 +38,7 @@
           <path d="M9 20h6"/>
           <path d="M12 4v16"/>
         </svg>
-        Labels
+        <span class="btn-text">Labels</span>
       </button>
 
       <button
@@ -53,7 +53,7 @@
           <path d="M3 15v4"/>
           <path d="M21 15v4"/>
         </svg>
-        Dimensions
+        <span class="btn-text">Dimensions</span>
       </button>
 
       <button
@@ -67,7 +67,7 @@
           <path d="M17 3v18"/>
           <circle cx="15" cy="12" r="1"/>
         </svg>
-        {{ doorOpen() ? 'Close Door' : 'Open Door' }}
+        <span class="btn-text">{{ doorOpen() ? 'Close Door' : 'Open Door' }}</span>
       </button>
 
       <button class="tb-btn help-btn" (click)="toggleHelp()" title="Help">
