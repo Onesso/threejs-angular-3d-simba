@@ -29,6 +29,9 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected selectedRoom = signal<RoomDef | null>(null);
   protected showHelp = signal(false);
   protected showMaterials = signal(false);
+  protected muted = signal(false);
+
+  private audio!: HTMLAudioElement;
 
   ngAfterViewInit(): void {
     this.sceneManager = new SceneManager(
@@ -39,9 +42,23 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         onModeChange: (m) => this.mode.set(m),
       }
     );
+
+    this.audio = new Audio('music/nyasango-brian-sigu.mp3');
+    this.audio.loop = true;
+    this.audio.volume = 0.4;
+
+    // Browsers require a user gesture before playing audio.
+    const playOnce = () => {
+      this.audio.play().catch(() => {});
+      document.removeEventListener('click', playOnce);
+      document.removeEventListener('keydown', playOnce);
+    };
+    document.addEventListener('click', playOnce);
+    document.addEventListener('keydown', playOnce);
   }
 
   ngOnDestroy(): void {
+    this.audio?.pause();
     this.sceneManager?.dispose();
   }
 
@@ -81,6 +98,12 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
 
   protected toggleMaterials(): void {
     this.showMaterials.set(!this.showMaterials());
+  }
+
+  protected toggleMute(): void {
+    const nowMuted = !this.muted();
+    this.muted.set(nowMuted);
+    this.audio.muted = nowMuted;
   }
 
   protected getRoomColor(room: RoomDef): string {
