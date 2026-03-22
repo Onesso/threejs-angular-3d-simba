@@ -35,7 +35,7 @@
           },
           "configurations": {
             "production": {
-              "baseHref": "/simba/",
+              "baseHref": "/threejs-angular-3d-simba/",
               "budgets": [
                 {
                   "type": "initial",
