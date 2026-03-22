@@ -84,11 +84,96 @@
         <span class="btn-text">{{ windowsOpen() ? 'Close Windows' : 'Open Windows' }}</span>
       </button>
 
+      <button
+        class="tb-btn"
+        [class.active]="showMaterials()"
+        (click)="toggleMaterials()"
+        title="Materials List"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <path d="M9 12h6"/>
+          <path d="M9 16h6"/>
+        </svg>
+        <span class="btn-text">Material</span>
+      </button>
+
       <button class="tb-btn help-btn" (click)="toggleHelp()" title="Help">
         ?
       </button>
     </div>
   </div>
+
+  <!-- Materials panel -->
+  @if (showMaterials()) {
+    <div class="materials-panel">
+      <div class="help-header">
+        <span>Materials List</span>
+        <button class="close-btn" (click)="toggleMaterials()">&times;</button>
+      </div>
+      <div class="materials-content">
+        <p class="mat-section">Structural</p>
+        <ul>
+          <li>2x 40ft High-Cube Shipping Containers</li>
+          <li>Concrete foundation slab (9.5m x 4.1m x 0.15m)</li>
+          <li>Steel support columns x4</li>
+        </ul>
+
+        <p class="mat-section">Roofing</p>
+        <ul>
+          <li>Metal roofing panels (dark finish) ~45 m²</li>
+          <li>Timber soffit boards (underside) ~45 m²</li>
+          <li>Steel fascia boards x4 sides</li>
+        </ul>
+
+        <p class="mat-section">Exterior Walls</p>
+        <ul>
+          <li>Brick cladding — front &amp; back walls ~48 m²</li>
+          <li>Brick cladding — side walls ~19 m²</li>
+          <li>Mortar &amp; brick ties</li>
+        </ul>
+
+        <p class="mat-section">Windows</p>
+        <ul>
+          <li>2x Front casement windows (1.86m x 1.50m)</li>
+          <li>2x Side casement windows (1.86m x 1.50m)</li>
+          <li>2x Back slim windows (0.30m x 1.80m)</li>
+          <li>Steel window frames x6</li>
+          <li>Double-glazed glass panes x6</li>
+        </ul>
+
+        <p class="mat-section">Door</p>
+        <ul>
+          <li>1x French door — 4 panel (2 fixed + 2 swing)</li>
+          <li>Steel door frame with transom</li>
+          <li>Tempered glass panels x4</li>
+          <li>Door hinges &amp; hardware</li>
+        </ul>
+
+        <p class="mat-section">Interior</p>
+        <ul>
+          <li>Plasterboard partition walls x2</li>
+          <li>Interior doors (0.9m x 2.1m) x2</li>
+          <li>Hardwood flooring ~33 m²</li>
+          <li>Interior wall paint / finish</li>
+        </ul>
+
+        <p class="mat-section">Veranda</p>
+        <ul>
+          <li>Deck tiles / pavers ~29 m²</li>
+          <li>Concrete support beams x4</li>
+        </ul>
+
+        <p class="mat-section">Furniture</p>
+        <ul>
+          <li>2x King-size beds with headboards</li>
+          <li>1x 3-seater sofa with armrests</li>
+          <li>1x 55" Wall-mounted TV with bracket</li>
+        </ul>
+      </div>
+    </div>
+  }
 
   <!-- Help panel -->
   @if (showHelp()) {

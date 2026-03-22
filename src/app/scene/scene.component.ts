@@ -28,6 +28,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   protected windowsOpen = signal(false);
   protected selectedRoom = signal<RoomDef | null>(null);
   protected showHelp = signal(false);
+  protected showMaterials = signal(false);
 
   ngAfterViewInit(): void {
     this.sceneManager = new SceneManager(
@@ -76,6 +77,10 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
 
   protected toggleHelp(): void {
     this.showHelp.set(!this.showHelp());
+  }
+
+  protected toggleMaterials(): void {
+    this.showMaterials.set(!this.showMaterials());
   }
 
   protected getRoomColor(room: RoomDef): string {

@@ -7,7 +7,7 @@ const CW = 2.438; // width
 const CH = 2.591; // height
 
 // House = two containers side by side
-export const HOUSE_LENGTH = CL;
+export const HOUSE_LENGTH = CL * 0.75; // 9.144 (75% of original)
 export const HOUSE_WIDTH = CW * 1.5; // 3.657 (75% of original)
 export const HOUSE_HEIGHT = CH;
 
@@ -21,11 +21,11 @@ export interface RoomDef {
   color: number;
 }
 
-// Living room = 1.5x bedroom: 2b + 1.5b = CL → b = CL/3.5
-const BED_LEN = CL / 3.5; // 3.484m
-const LR_LEN = 1.5 * BED_LEN; // 5.226m
-const LR_START = BED_LEN; // 3.484
-const LR_END = BED_LEN + LR_LEN; // 8.710
+// Living room = 1.5x bedroom: 2b + 1.5b = HOUSE_LENGTH → b = HOUSE_LENGTH/3.5
+const BED_LEN = HOUSE_LENGTH / 3.5;
+const LR_LEN = 1.5 * BED_LEN;
+const LR_START = BED_LEN;
+const LR_END = BED_LEN + LR_LEN;
 
 export const ROOMS: RoomDef[] = [
   {
@@ -46,8 +46,8 @@ export const ROOMS: RoomDef[] = [
   },
   {
     name: 'Bedroom 2',
-    bounds: { minX: LR_END, maxX: CL, minZ: 0, maxZ: HOUSE_WIDTH },
-    labelPos: new THREE.Vector3((LR_END + CL) / 2, 1.5, HOUSE_WIDTH / 2),
+    bounds: { minX: LR_END, maxX: HOUSE_LENGTH, minZ: 0, maxZ: HOUSE_WIDTH },
+    labelPos: new THREE.Vector3((LR_END + HOUSE_LENGTH) / 2, 1.5, HOUSE_WIDTH / 2),
     description: 'Master bedroom with panoramic windows',
     area: `${(BED_LEN * HOUSE_WIDTH).toFixed(1)} m²`,
     color: 0x9c27b0,
@@ -63,27 +63,27 @@ export interface DimensionDef {
   color?: string; // label background color (default: red for house, blue for windows/doors)
 }
 
-// Window/door dimensions for labels
-const SIDE_WIN_W = 3.3875 - 0.9125; // 2.475m
+// Window/door dimensions for labels (scaled 75% in length direction)
+const SIDE_WIN_W = (3.3875 - 0.9125) * 0.75; // 1.856m (75% of original 2.475m)
 const SIDE_WIN_H = 2.05 - 0.55; // 1.5m
-const DOOR_W_VAL = 0.7 * (1.5 * (CL / 3.5) - 0.6); // ~3.24m
+const DOOR_W_VAL = 0.7 * (LR_LEN - 0.6);
 const DOOR_H_VAL = 2.3;
-const SLIM_WIN_W_VAL = 0.4;
+const SLIM_WIN_W_VAL = 0.4 * 0.75; // 0.3m (75% of original 0.4m)
 const SLIM_WIN_H_VAL = 2.1 - 0.3; // 1.8m
 
 // Positions for front window/door labels
-const _bed1CX = (CL / 3.5) / 2;
-const _lrStart = CL / 3.5;
-const _lrEnd = CL / 3.5 + 1.5 * (CL / 3.5);
-const _bed2CX = _lrEnd + (CL / 3.5) / 2;
-const _doorCX = (_lrStart + _lrEnd) / 2;
+const _bed1CX = BED_LEN / 2;
+const _lrStart = LR_START;
+const _lrEnd = LR_END;
+const _bed2CX = LR_END + BED_LEN / 2;
+const _doorCX = (LR_START + LR_END) / 2;
 
 export const DIMENSIONS: DimensionDef[] = [
   // House overall
   {
     start: new THREE.Vector3(0, 0, -0.5),
-    end: new THREE.Vector3(CL, 0, -0.5),
-    label: `${CL.toFixed(2)}m`,
+    end: new THREE.Vector3(HOUSE_LENGTH, 0, -0.5),
+    label: `${HOUSE_LENGTH.toFixed(2)}m`,
     offset: new THREE.Vector3(0, 0.3, 0),
   },
   {
@@ -93,8 +93,8 @@ export const DIMENSIONS: DimensionDef[] = [
     offset: new THREE.Vector3(0, 0.3, 0),
   },
   {
-    start: new THREE.Vector3(CL + 0.3, 0, 0),
-    end: new THREE.Vector3(CL + 0.3, CH, 0),
+    start: new THREE.Vector3(HOUSE_LENGTH + 0.3, 0, 0),
+    end: new THREE.Vector3(HOUSE_LENGTH + 0.3, CH, 0),
     label: `${CH.toFixed(2)}m`,
     offset: new THREE.Vector3(0.3, 0, 0),
   },
@@ -185,7 +185,7 @@ export const DIMENSIONS: DimensionDef[] = [
   // Bedroom 2 (purple)
   {
     start: new THREE.Vector3(LR_END, 0.2, 0.3),
-    end: new THREE.Vector3(CL, 0.2, 0.3),
+    end: new THREE.Vector3(HOUSE_LENGTH, 0.2, 0.3),
     label: `Bedroom 2: ${BED_LEN.toFixed(2)}m`,
     offset: new THREE.Vector3(0, 0.4, 0),
     color: '#9c27b0',
@@ -416,8 +416,8 @@ export function buildContainerHouse(): THREE.Group {
   // ============= EXTERIOR WALLS =============
 
   // --- Front wall (Z=0, facing -Z) ---
-  // Bedroom front windows: same dimensions as side windows (2.475m x 1.5m), centered in each bedroom
-  const sideWinW = 3.3875 - 0.9125; // 2.475m
+  // Bedroom front windows (scaled 75% in length direction)
+  const sideWinW = (3.3875 - 0.9125) * 0.75; // 1.856m (75% of 2.475m)
   const sideWinB = 0.55;
   const sideWinT = 2.05;
   const bed1CX = BED_LEN / 2; // center of bedroom 1
@@ -558,7 +558,7 @@ export function buildContainerHouse(): THREE.Group {
 
   // --- Back wall (Z=HOUSE_WIDTH, facing +Z) ---
   // Slim windows on back wall, in the living room section, toward the ends
-  const SLIM_W = 0.4;
+  const SLIM_W = 0.4 * 0.75; // 0.3m (75% of original)
   const SLIM_B = 0.3;
   const SLIM_T = 2.1;
   const slimInset = 0.5; // distance from interior wall to window edge
